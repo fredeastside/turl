@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS logs (
+   id SERIAL PRIMARY KEY,
+   url_id BIGINT NOT NULL,
+   datetime TIMESTAMPTZ DEFAULT Now()
+);

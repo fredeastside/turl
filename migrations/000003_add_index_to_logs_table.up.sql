@@ -1,0 +1,1 @@
+CREATE INDEX idx_logs_url_id_and_datetime ON logs (url_id, datetime);

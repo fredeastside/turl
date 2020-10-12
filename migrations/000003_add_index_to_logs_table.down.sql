@@ -1,0 +1,1 @@
+DROP INDEX idx_logs_url_id_and_datetime;
