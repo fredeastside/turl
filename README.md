@@ -50,7 +50,7 @@ How it works
 curl -X GET "http://0.0.0.0:8080/api/v1/gJWG/report"
 ```
 
-## Credentials ans settings
+## Credentials and settings
 Please, find it in ```.env``` file
 ```
 APP_PORT=8080
