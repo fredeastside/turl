@@ -1,0 +1,132 @@
+version: '3.1'
+
+services:
+  db:
+    container_name: db
+    image: postgres:latest
+    ports:
+      - $DB_PORT:$DB_PORT
+    volumes:
+      - ./docker/postgresql/pgdata:/var/lib/postgresql/data
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: $DB_USER
+      POSTGRES_PASSWORD: $DB_PASSWORD
+      POSTGRES_DB: $DB_NAME
+      #POSTGRES_INITDB_ARGS:
+    networks:
+      - turl
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  migrations:
+    container_name: migrations
+    build:
+      context: ./docker/migrations
+      dockerfile: ./Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./migrations:/migrations
+    entrypoint: [ "./migrate.sh", "db" ]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - turl
+
+  zookeeper:
+    container_name: zookeeper
+    image: 'bitnami/zookeeper:3'
+    ports:
+      - '${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}'
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    env_file:
+      - .env
+    networks:
+      - turl
+
+  kafka:
+    container_name: kafka
+    image: 'bitnami/kafka:2'
+    ports:
+      - '${KAFKA_PORT}:${KAFKA_PORT}'
+    env_file:
+      - .env
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:${ZOOKEEPER_PORT}
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: [ "CMD", "kafka-topics.sh", "--list", "--zookeeper", "zookeeper:${ZOOKEEPER_PORT}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - turl
+
+#  kafdrop:
+#    image: obsidiandynamics/kafdrop
+#    ports:
+#      - 9100:9000
+#    environment:
+#      - KAFKA_BROKERCONNECT=kafka:${KAFKA_PORT}
+#      - JVM_OPTS=-Xms32M -Xmx64M
+#    depends_on:
+#      - kafka
+#    networks:
+#      - turl
+
+  app:
+    container_name: app
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PORT: $APP_PORT
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    ports:
+      - $APP_PORT:$APP_PORT
+    restart: unless-stopped
+    networks:
+      - turl
+
+  worker:
+    container_name: worker
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PORT: $WORKER_PORT
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    ports:
+      - $WORKER_PORT:$WORKER_PORT
+    restart: unless-stopped
+    networks:
+      - turl
+
+networks:
+  turl:
+    driver: bridge
