@@ -1,0 +1,8 @@
+version: '3.1'
+
+services:
+  tests:
+    container_name: tests
+    build:
+      context: .
+      dockerfile: docker/tests/Dockerfile
