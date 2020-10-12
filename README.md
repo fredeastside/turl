@@ -9,16 +9,6 @@ make start
 ```
 Try to send curl requests.
 
-## Up/Stop
-
-```bash
-make up
-```
-
-```bash
-make stop
-```
-
 ## Tech stack
 1. Go
 2. PostgreSQL
@@ -71,4 +61,14 @@ UID_MIN_LEN=4
 ## Tests
 ```bash
 make test
+```
+
+## Up/Stop
+
+```bash
+make up
+```
+
+```bash
+make stop
 ```
